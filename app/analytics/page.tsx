@@ -1,89 +1,128 @@
 "use client";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import RetinaRiskMeter from "@/components/RetinaRiskMeter";
-import GlucoseTrendChart from "@/components/GlucoseTrendChart";
-// Added TrendingUp and Activity to the imports below
-import { Download, Share2, Info, TrendingUp, Activity } from "lucide-react";
+import { 
+  Plus, 
+  History, 
+  TrendingUp, 
+  ChevronRight, 
+  Activity,
+  Eye,
+  FileText
+} from "lucide-react";
+import Link from "next/link";
 
-export default function AnalyticsPage() {
+export default function DashboardPage() {
+  const [userName, setUserName] = useState("Patient");
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user_profile") || "{}");
+    if (storedUser.name) setUserName(storedUser.name);
+  }, []);
+
+  // Mock history data including the real Matara report
+  const historyData = [
+    { 
+      date: "Mar 28, 2026", 
+      type: "Mohotti Edilab Report", 
+      result: "9.6% HbA1c", 
+      status: "Critical", 
+      color: "text-red-600 bg-red-50" 
+    },
+    { 
+      date: "Jan 15, 2026", 
+      type: "Retina Scan", 
+      result: "Healthy", 
+      status: "Normal", 
+      color: "text-green-600 bg-green-50" 
+    },
+    { 
+      date: "Dec 10, 2025", 
+      type: "Lab Report", 
+      result: "8.2% HbA1c", 
+      status: "High", 
+      color: "text-orange-600 bg-orange-50" 
+    },
+  ];
+
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
+    <main className="min-h-screen bg-slate-50 font-montserrat">
+      
+      
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        {/* Welcome Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h1 className="text-3xl font-montserrat font-bold text-slate-900">Your Health Analysis</h1>
-            <p className="text-slate-500 mt-2">Generated on April 21, 2026</p>
-          </div>
-          <div className="flex gap-4">
-            <button className="flex items-center gap-2 text-slate-600 bg-white border border-slate-200 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all">
-              <Share2 className="w-4 h-4" /> Share
-            </button>
-            <button className="flex items-center gap-2 bg-brand text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:scale-105 transition-all">
-              <Download className="w-4 h-4" /> Save PDF
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Eye Scan Card */}
-          <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-            <h3 className="text-xl font-montserrat font-bold mb-8 text-slate-800">RetinaEngine Analysis</h3>
-            <RetinaRiskMeter />
-            <div className="mt-6 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                <Info className="w-3 h-3" /> AI Observation
-              </p>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Small clusters of microaneurysms detected in the peripheral region. Immediate clinical concern is low, but annual screening is mandatory.
-              </p>
-            </div>
-          </div>
-
-          {/* Blood Report Card */}
-          <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
-            <h3 className="text-xl font-montserrat font-bold mb-8 text-slate-800">Blood Glucose Trends</h3>
-            <GlucoseTrendChart />
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Average HbA1c</p>
-                <p className="text-xl font-bold text-blue-700">7.2%</p>
-              </div>
-              <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Variability</p>
-                <p className="text-xl font-bold text-orange-700">High</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* The Integrated AI Bridge */}
-        <div className="mt-12 p-8 bg-slate-900 rounded-[40px] text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-10 opacity-10">
-            <TrendingUp className="w-32 h-32" />
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+              Welcome back, {userName.split(' ')[0]}
+            </h1>
+            <p className="text-slate-500 mt-1">Your health journey at a glance.</p>
           </div>
           
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-brand p-2 rounded-lg">
-                <Activity className="w-5 h-5 text-white" />
+          <Link href="/diagnostics">
+            <button className="bg-brand text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg shadow-brand/20 hover:scale-105 transition-all">
+              <Plus className="w-5 h-5" /> New Analysis
+            </button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Content: History Timeline */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-bold text-slate-800">Recent Medical History</h3>
+                <History className="w-5 h-5 text-slate-400" />
               </div>
-              <h4 className="text-xl font-montserrat font-bold">Integrated AI Insight</h4>
-            </div>
-            
-            <p className="text-slate-300 leading-relaxed max-w-3xl">
-              Our cross-analysis indicates that your <span className="text-white font-bold underline decoration-brand underline-offset-4">glucose spike on Friday (190 mg/dL)</span> directly correlates with the <span className="text-white font-bold underline decoration-brand underline-offset-4">new microaneurysms</span> detected in your right eye. 
-              Stabilizing your sugar levels over the next 3 weeks is critical to preventing progression to Level 3 Retinopathy.
-            </p>
-            
-            <div className="mt-8 flex gap-4">
-              <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/10 text-[10px] font-bold uppercase tracking-widest">
-                Next Checkup: 30 Days
-              </div>
-              <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/10 text-[10px] font-bold uppercase tracking-widest text-brand">
-                High Priority Recommendation
+
+              <div className="space-y-4">
+                {historyData.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-5 rounded-3xl border border-slate-50 hover:border-brand/20 hover:bg-slate-50/50 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-slate-100 p-3 rounded-2xl group-hover:bg-white transition-colors">
+                        {item.type.includes("Scan") ? <Eye className="w-5 h-5 text-brand"/> : <FileText className="w-5 h-5 text-blue-500"/>}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 text-sm">{item.type}</p>
+                        <p className="text-xs text-slate-400">{item.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right hidden sm:block">
+                        <p className="text-sm font-bold text-slate-700">{item.result}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${item.color}`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-brand transition-colors" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+
+          {/* Side Content: Quick Insight */}
+          <div className="space-y-6">
+            <div className="bg-slate-900 rounded-[40px] p-8 text-white relative overflow-hidden shadow-xl">
+              <div className="relative z-10">
+                <TrendingUp className="w-10 h-10 text-brand mb-6" />
+                <h3 className="text-xl font-bold mb-3">AI Trend Alert</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Your HbA1c has increased from **8.2%** to **9.6%** since December. We recommend running a new Retina Scan today to check for vascular changes.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm text-center">
+              <Activity className="w-10 h-10 text-brand mx-auto mb-4 opacity-20" />
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Health Score</p>
+              <p className="text-4xl font-bold text-slate-800 mt-2">68/100</p>
+              <p className="text-[10px] text-orange-500 font-bold mt-2">Requires Attention</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </main>
