@@ -1,164 +1,231 @@
 "use client";
 import { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { 
-  Plus, 
-  History, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area,
+  BarChart,
+  Bar,
+  Cell
+} from "recharts";
+import { 
+  ChevronLeft, 
   TrendingUp, 
-  ChevronRight, 
-  Activity,
+  AlertCircle, 
   Eye,
-  FileText,
-  Loader2
+  Loader2,
+  Scan,
+  ExternalLink,
+  Activity
 } from "lucide-react";
-import Link from "next/link";
 
-export default function DashboardPage() {
-  const [userName, setUserName] = useState("Patient");
-  const [historyData, setHistoryData] = useState<any[]>([]);
+export default function AnalyticsPage() {
+  const router = useRouter();
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ latestHbA1c: "N/A", trend: "Stable" });
+
+  // Reference Value Logic based on your image
+  const getHbA1cStatus = (val: number) => {
+    if (val < 6) return { label: "Excellent control", desc: "Normal range as a non diabetic", color: "#10b981", bg: "bg-emerald-50", text: "text-emerald-600" };
+    if (val >= 6 && val < 7) return { label: "Good control", desc: "As a Diabetic", color: "#3b82f6", bg: "bg-blue-50", text: "text-blue-600" };
+    if (val >= 7 && val < 8) return { label: "Fair control", desc: "Should attempt to lower the value", color: "#eab308", bg: "bg-yellow-50", text: "text-yellow-600" };
+    if (val >= 8 && val < 10) return { label: "Unsatisfactory control", desc: "Needs attention to lower the value", color: "#f97316", bg: "bg-orange-50", text: "text-orange-600" };
+    return { label: "Very poor control", desc: "Immediate vigorous action needed", color: "#ef4444", bg: "bg-red-50", text: "text-red-600" };
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      
-      // 1. Get Logged in User
+    const fetchAnalytics = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserName(user.user_metadata?.full_name || "Patient");
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-        // 2. Fetch History from Supabase
-        const { data: records, error } = await supabase
-          .from('health_records')
-          .select('*')
-          .eq('patient_id', user.id)
-          .order('created_at', { ascending: false });
+      const { data: records, error } = await supabase
+        .from("health_records")
+        .select("*")
+        .eq("patient_id", user.id)
+        .order("created_at", { ascending: true });
 
-        if (records) {
-          setHistoryData(records);
-          
-          // 3. Simple logic for the AI Trend Sidebar
-          if (records.length > 0) {
-            const latest = records.find(r => r.hba1c_value);
-            setStats({
-              latestHbA1c: latest ? `${latest.hba1c_value}%` : "N/A",
-              trend: latest?.hba1c_value > 8 ? "Requires Attention" : "Stable"
-            });
-          }
-        }
+      if (records) {
+        const formattedData = records.map(r => {
+          const confidenceMatch = r.ai_conclusion?.match(/\d+/);
+          const confidenceValue = confidenceMatch ? parseInt(confidenceMatch[0]) : 0;
+
+          return {
+            ...r,
+            date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            hba1c: r.hba1c_value || 0,
+            confidence: confidenceValue,
+            isEyeScan: !!r.eye_scan_url
+          };
+        });
+        setData(formattedData);
       }
       setLoading(false);
     };
 
-    fetchDashboardData();
-  }, []);
+    fetchAnalytics();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  const eyeData = data.filter(d => d.isEyeScan);
+  const latestRecord = data[data.length - 1];
+  const hba1cStatus = latestRecord?.hba1c > 0 ? getHbA1cStatus(latestRecord.hba1c) : null;
 
   return (
-    <main className="min-h-screen bg-slate-50 font-montserrat">
-      <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        {/* Welcome Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-              Welcome back, {userName.split(' ')[0]}
-            </h1>
-            <p className="text-slate-500 mt-1 font-medium">Your medical records are synchronized.</p>
+    <main className="min-h-screen bg-slate-50 font-inter">
+      {/* Header - Logo part remains unchanged */}
+      <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-slate-100 sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="relative w-50 h-10">
+            <Image src="/logo.png" alt="Logo" fill className="object-contain" priority />
           </div>
-          
-          <Link href="/diagnostics">
-            <button className="bg-brand text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg shadow-brand/20 hover:scale-105 transition-all">
-              <Plus className="w-5 h-5" /> New Analysis
-            </button>
-          </Link>
+        </div>
+        <button 
+          onClick={() => router.push('/dashboard')} 
+          className="flex items-center gap-2 text-slate-400 hover:text-brand transition-all font-bold text-[10px] uppercase tracking-widest group"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
+        </button>
+      </header>
+
+      <div className="max-w-7xl mx-auto py-12 px-6">
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-slate-900 font-montserrat tracking-tight mb-2">Health Analytics</h1>
+          <p className="text-slate-500 font-medium italic">Clinical trends based on HPLC reference values.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Content: Real-time History Timeline */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 min-h-[400px]">
+        {data.length > 0 ? (
+          <div className="grid lg:grid-cols-2 gap-8">
+            
+            {/* Chart 1: HbA1c Progress */}
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-bold text-slate-800">Medical Timeline</h3>
-                <History className="w-5 h-5 text-slate-400" />
+                <div className="flex items-center gap-3">
+                  <div className="bg-brand/10 p-3 rounded-2xl">
+                    <TrendingUp className="text-brand w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-xl text-slate-800 font-montserrat">Glycemic Index (HbA1c)</h3>
+                </div>
               </div>
+              
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.filter(d => d.hba1c > 0)}>
+                    <defs>
+                      <linearGradient id="colorHb" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0bcfcf" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0bcfcf" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                    <YAxis domain={[4, 14]} axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                    <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                    <Area type="monotone" dataKey="hba1c" stroke="#0bcfcf" strokeWidth={3} fillOpacity={1} fill="url(#colorHb)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                  <Loader2 className="w-10 h-10 animate-spin mb-4" />
-                  <p className="text-sm font-bold">Fetching cloud records...</p>
+            {/* Chart 2: AI Scan Confidence */}
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="bg-brand p-3 rounded-2xl shadow-lg shadow-brand/20">
+                  <Scan className="text-white w-5 h-5" />
                 </div>
-              ) : historyData.length === 0 ? (
-                <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-3xl">
-                   <p className="text-slate-400 font-medium">No records found. Start your first analysis.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {historyData.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-5 rounded-3xl border border-slate-50 hover:border-brand/20 hover:bg-slate-50/50 transition-all group">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-slate-100 p-3 rounded-2xl group-hover:bg-white transition-colors">
-                          {item.eye_scan_url ? <Eye className="w-5 h-5 text-brand"/> : <FileText className="w-5 h-5 text-blue-500"/>}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm">
-                            {item.hospital_name || "Diagnostic Result"}
+                <h3 className="font-bold text-xl text-slate-800 font-montserrat">AI Scan Confidence (%)</h3>
+              </div>
+              
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={eyeData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '20px', border: 'none' }} />
+                    <Bar dataKey="confidence" radius={[10, 10, 0, 0]} barSize={40}>
+                      {eyeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.risk_level === 'High' ? '#f87171' : '#0bcfcf'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Retinal Scan Repository */}
+            <div className="lg:col-span-2 bg-white p-10 rounded-[48px] border border-slate-100">
+               <h3 className="font-bold text-xl text-slate-800 font-montserrat mb-8 flex items-center gap-3">
+                 <Eye className="text-brand w-6 h-6" /> Retinal Scan Repository
+               </h3>
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  {eyeData.map((scan, idx) => (
+                    <div key={idx} className="group relative aspect-square rounded-3xl overflow-hidden bg-slate-100 border border-slate-200">
+                       <img src={scan.eye_scan_url} alt="Scan" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                       <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
+                          <p className="text-white text-[10px] font-bold uppercase mb-1">{scan.date}</p>
+                          <p className={`text-[10px] font-black px-2 py-0.5 rounded-full ${scan.risk_level === 'High' ? 'bg-red-500' : 'bg-brand'}`}>
+                            {scan.risk_level}
                           </p>
-                          <p className="text-xs text-slate-400">
-                            {new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-sm font-bold text-slate-700">
-                            {item.hba1c_value ? `${item.hba1c_value}% HbA1c` : item.risk_level}
-                          </p>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter 
-                            ${item.hba1c_value > 8 || item.risk_level === 'High' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
-                            {item.hba1c_value > 8 || item.risk_level === 'High' ? 'Critical' : 'Normal'}
-                          </span>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-brand transition-colors" />
-                      </div>
+                          <a href={scan.eye_scan_url} target="_blank" className="mt-3 text-white/70 hover:text-white transition-colors">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                       </div>
                     </div>
                   ))}
-                </div>
-              )}
+               </div>
             </div>
+
+            {/* Risk Summary Card Updated with Reference Values */}
+            <div className="lg:col-span-2 bg-[#0f172a] p-10 rounded-[48px] text-white flex flex-col md:flex-row items-center justify-between gap-8">
+               <div className="flex items-center gap-6">
+                  <div className={`w-20 h-20 rounded-3xl flex items-center justify-center border ${hba1cStatus ? hba1cStatus.bg.replace('bg-', 'bg-opacity-20 bg-') : 'bg-brand/20 border-brand/30'}`}>
+                    {hba1cStatus ? <Activity className={`w-10 h-10 ${hba1cStatus.text}`} /> : <AlertCircle className="w-10 h-10 text-brand" />}
+                  </div>
+                  <div>
+                    <h4 className="text-2xl font-bold font-montserrat mb-1 tracking-tight">
+                      {hba1cStatus ? hba1cStatus.label : "AI Diagnostic Summary"}
+                    </h4>
+                    <p className="text-slate-400 max-w-md font-light">
+                      {hba1cStatus 
+                        ? hba1cStatus.desc 
+                        : `Current retinal analysis suggests a ${latestRecord?.risk_level || 'Pending'} risk level.`}
+                    </p>
+                  </div>
+               </div>
+               <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 text-center min-w-[240px]">
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Current HbA1c</p>
+                  <p className={`text-3xl font-bold font-montserrat ${hba1cStatus ? hba1cStatus.text : 'text-white'}`}>
+                    {latestRecord?.hba1c > 0 ? `${latestRecord.hba1c}%` : "--"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold">Latest Entry: {latestRecord?.date}</p>
+               </div>
+            </div>
+
           </div>
-
-          {/* Side Content: AI-Driven Metrics */}
-          <div className="space-y-6">
-            <div className="bg-slate-900 rounded-[40px] p-8 text-white relative overflow-hidden shadow-xl">
-              <div className="absolute -top-10 -right-10 bg-brand/10 w-32 h-32 rounded-full blur-3xl"></div>
-              <div className="relative z-10">
-                <TrendingUp className="w-10 h-10 text-brand mb-6" />
-                <h3 className="text-xl font-bold mb-3 tracking-tight">AI Trend Alert</h3>
-                <p className="text-sm text-slate-300 leading-relaxed font-light">
-                  {stats.latestHbA1c !== "N/A" 
-                    ? `Your latest HbA1c is ${stats.latestHbA1c}. Based on the Mohotti Edilab datasets, this indicates a high correlation with potential vision changes.`
-                    : "No data points available yet. Complete your first scan to generate AI trends."}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm text-center">
-              <Activity className="w-10 h-10 text-brand mx-auto mb-4 opacity-20" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Health Index</p>
-              <p className="text-4xl font-bold text-slate-800 mt-2">
-                {parseFloat(stats.latestHbA1c) > 9 ? "54" : "78"}/100
-              </p>
-              <p className={`text-[10px] font-bold mt-2 uppercase ${stats.trend.includes("Attention") ? "text-red-500" : "text-brand"}`}>
-                {stats.trend}
-              </p>
-            </div>
+        ) : (
+          <div className="bg-white rounded-[40px] p-20 text-center border border-slate-100">
+            <Scan className="w-16 h-16 text-slate-100 mx-auto mb-4" />
+            <p className="text-slate-400 font-medium font-montserrat">No diagnostic history available.</p>
+            <button onClick={() => router.push('/diagnostics')} className="mt-6 text-brand font-bold uppercase text-xs tracking-widest border-b-2 border-brand/20 hover:border-brand transition-all">Upload First Scan</button>
           </div>
-
-        </div>
+        )}
       </div>
     </main>
   );
