@@ -1,20 +1,39 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
-  // Don't show the navbar on Login or Register pages for a cleaner UI
+  // Check if user is logged in whenever the page changes
+  useEffect(() => {
+    const userStatus = localStorage.getItem("isLoggedIn");
+    setIsLoggedIn(userStatus === "true");
+  }, [pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false);
+    router.push("/");
+  };
+
   if (pathname === "/login" || pathname === "/register") return null;
 
   return (
     <nav className="flex justify-between items-center px-6 md:px-10 py-4 bg-white border-b sticky top-0 z-50">
       <Link href="/" className="flex items-center gap-2">
-        <Image src="/logo.png" alt="Logo" width={160} height={45} className="object-contain" />
+        <Image 
+          src="/logo.png" 
+          alt="Logo" 
+          width={160} 
+          height={45} 
+          style={{ height: 'auto' }} 
+          className="object-contain" 
+        />
       </Link>
       
       <div className="hidden md:flex items-center space-x-8 font-montserrat font-semibold text-slate-600">
@@ -22,6 +41,7 @@ export default function Navbar() {
         
         {isLoggedIn ? (
           <>
+            <Link href="/dashboard" className="hover:text-brand transition text-xs uppercase tracking-widest">Dashboard</Link>
             <Link href="/diagnostics" className="hover:text-brand transition text-xs uppercase tracking-widest">Portal</Link>
             <Link href="/analytics" className="hover:text-brand transition text-xs uppercase tracking-widest">Analytics</Link>
           </>
@@ -35,7 +55,12 @@ export default function Navbar() {
 
       <div className="flex items-center gap-4">
         {isLoggedIn ? (
-          <button onClick={() => setIsLoggedIn(false)} className="text-slate-500 font-bold text-sm">Logout</button>
+          <button 
+            onClick={handleLogout}
+            className="text-slate-500 font-bold text-sm hover:text-red-500 transition"
+          >
+            Logout
+          </button>
         ) : (
           <>
             <Link href="/login" className="text-slate-600 font-bold text-sm hover:text-brand transition">Login</Link>

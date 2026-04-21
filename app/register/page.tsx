@@ -1,9 +1,22 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // Import router
 import { User, Mail, Lock, Heart, Play, Calendar } from "lucide-react";
 
 export default function RegisterPage() {
+  const router = useRouter();
+
+   const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Set the "session" in the browser's memory
+    localStorage.setItem("isLoggedIn", "true");
+    
+    // Go to dashboard
+    router.push("/dashboard");
+  };
+
   return (
     <main className="min-h-screen bg-white flex flex-col md:flex-row-reverse overflow-hidden">
       
@@ -12,17 +25,26 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="mb-10 flex justify-center md:justify-start">
-            <Image src="/logo.png" alt="GlucoVision Logo" width={180} height={50} className="object-contain" />
+            <Image 
+                      src="/logo.png" 
+                      alt="GlucoVision Logo" 
+                      width={180}   
+                      height={50}   
+                      className="object-contain"
+                      style={{ height: 'auto' }} 
+                      priority      
+            />
           </div>
 
           <h1 className="text-2xl font-montserrat font-bold text-slate-800 mb-2">Start Your Journey</h1>
           <p className="text-slate-400 text-sm mb-8 tracking-wide uppercase font-bold">Create your personal health profile</p>
 
-          <form className="space-y-5">
+          <form onSubmit={handleRegister} className="space-y-5">
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Full Name:</label>
               <input 
                 type="text" 
+                required
                 placeholder="Kamal Perera"
                 className="w-full border-2 border-slate-100 rounded-xl py-3 px-4 focus:border-brand focus:outline-none transition-all placeholder:text-slate-300"
               />
@@ -42,6 +64,7 @@ export default function RegisterPage() {
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Email Address:</label>
               <input 
                 type="email" 
+                required
                 placeholder="yourname@email.com"
                 className="w-full border-2 border-slate-100 rounded-xl py-3 px-4 focus:border-brand focus:outline-none transition-all placeholder:text-slate-300"
               />
@@ -51,12 +74,16 @@ export default function RegisterPage() {
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Create Password:</label>
               <input 
                 type="password" 
+                required
                 placeholder="••••••••••••"
                 className="w-full border-2 border-slate-100 rounded-xl py-3 px-4 focus:border-brand focus:outline-none transition-all placeholder:text-slate-300"
               />
             </div>
 
-            <button className="w-full mt-4 bg-gradient-to-r from-brand to-[#08a3a3] text-white py-4 rounded-full font-bold text-lg shadow-xl shadow-brand/20 hover:scale-[1.02] transition-all active:scale-95">
+            <button 
+              type="submit"
+              className="w-full mt-4 bg-gradient-to-r from-brand to-[#08a3a3] text-white py-4 rounded-full font-bold text-lg shadow-xl shadow-brand/20 hover:scale-[1.02] transition-all active:scale-95"
+            >
               Create My Profile
             </button>
           </form>
@@ -67,7 +94,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Left Side: Patient Branding (Teal Circle) */}
+      {/* Left Side: Patient Branding */}
       <div className="hidden md:flex w-1/2 bg-brand relative overflow-hidden items-center justify-center p-16">
         <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-white/10 rounded-full blur-3xl" />
         
